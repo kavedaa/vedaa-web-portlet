@@ -27,7 +27,7 @@ object ActionReq {
     response)
 }
 
-class RouterPortlet extends GenericPortlet
+class RouterPortlet extends GenericPortlet with CommonExtractors
 {
   val renderRouteBuilder = new ListBuffer[PartialFunction[RenderReq, View]]
   val actionRouteBuilder = new ListBuffer[PartialFunction[ActionReq, Unit]]
@@ -69,10 +69,6 @@ class RouterPortlet extends GenericPortlet
 
   object -- {
     def unapply(req: ActionReq) = Some(req, req.response)
-  }
-
-  object & {
-    def unapply[T](x: T) = Some(x, x)
   }
 
   class Mode(val self: PortletMode) {
