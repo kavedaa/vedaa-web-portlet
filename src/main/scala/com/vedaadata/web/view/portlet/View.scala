@@ -15,7 +15,8 @@ abstract class View {
   }
 
   def contextify(link: String)(implicit contextPath: ContextPath) =
-    contextPath.path + "/" + link
+    if (!link.startsWith("/")) contextPath.path + "/" + link
+    else link
 }
 
 abstract class StringView extends View {
