@@ -89,6 +89,17 @@ object View {
   }
 }
 
+trait ViewUtil {
+  
+  def setParams(url: PortletURL, params: Seq[(String, String)]) {
+    params foreach {
+      case (param, value) =>
+        url.setParameter(param, value)
+    }
+    url    
+  }
+}
+
 abstract class URL {
   protected def url(response: RenderResponse): PortletURL
   def apply(paramValues: (String, String)*)(implicit response: RenderResponse) = {
