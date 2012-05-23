@@ -1,58 +1,52 @@
 package com.vedaadata.web.view.portlet
 
+import com.vedaadata.web.route.portlet._
 import javax.portlet._
 import scala.xml._
 import collection.JavaConversions._
 
-abstract class View {
-  def render(request: RenderRequest, response: RenderResponse): Unit
+abstract class View extends ViewUtil {
+  
+  def render()(implicit ctx: RenderContext): Unit
 
-  case class ContextPath(path: String)
-
-  object ContextPath {
-    def apply(request: RenderRequest): ContextPath =
-      ContextPath(request.getContextPath)
-  }
-
-  def contextify(link: String)(implicit contextPath: ContextPath) =
-    if (!link.startsWith("/")) contextPath.path + "/" + link
+  def contextify(link: String)(implicit ctx: RenderContext) =
+    if (!link.startsWith("/")) ctx.request.getContextPath + "/" + link
     else link
 }
 
 abstract class StringView extends View {
   val contentType = "text/html; charset=utf-8"
-  def renderString(response: RenderResponse, content: String) {
-    response setContentType contentType
-    response.getWriter print content
+  def renderString(content: String)(implicit ctx: RenderContext) {
+    ctx.response setContentType contentType
+    ctx.response.getWriter print content
   }
 }
 
 class TextView(text: String) extends StringView {
-  def render(request: RenderRequest, response: RenderResponse) {
-    renderString(response, text)
+  def render()(implicit ctx: RenderContext) {
+    renderString(text)
   }
 }
 
 abstract class XmlView extends StringView {
   val prettyPrint = true
 
-  def xml(implicit ctxPath: ContextPath): scala.xml.Elem
+  def xml(implicit ctx: RenderContext): scala.xml.Elem
 
-  def render(request: RenderRequest, response: RenderResponse) {
-    //    println(enumerationAsScalaIterator(request.getResponseContentTypes) map { println } )
-    if (prettyPrint) renderPretty(request, response)
-    else renderPlain(request, response)
+  def render()(implicit ctx: RenderContext) {
+    if (prettyPrint) renderPretty()
+    else renderPlain()
   }
 
-  private def renderPretty(request: RenderRequest, response: RenderResponse) {
+  private def renderPretty()(implicit ctx: RenderContext) {
     val printer = new PrettyPrinter(1024, 2)
     val sb = new StringBuilder
-    printer.format(xml(ContextPath(request)), sb)
-    renderString(response, sb toString)
+    printer.format(xml, sb)
+    renderString(sb.toString)
   }
 
-  private def renderPlain(request: RenderRequest, response: RenderResponse) {
-    renderString(response, xml(ContextPath(request)) toString)
+  private def renderPlain()(implicit ctx: RenderContext) {
+    renderString(xml.toString)
   }
 }
 
@@ -61,9 +55,9 @@ abstract class XhtmlView(wrapperClassName: String) extends XmlView {
   def cssFiles: List[String] = Nil
   def jsFiles: List[String] = Nil
 
-  def body(implicit contextPath: ContextPath): scala.xml.Elem
+  def body(implicit ctx: RenderContext): scala.xml.Elem
 
-  def xml(implicit contextPath: ContextPath) =
+  def xml(implicit ctx: RenderContext) =
     <div class={ wrapperClassName }>
       {
         cssFiles map { cssFile =>
@@ -85,37 +79,23 @@ object View {
 
   implicit def elemToView(elem: Elem) = new XhtmlView("") {
     override def cssFiles = List("style.css")
-    def body(implicit ctxPath: ContextPath) = elem
+    def body(implicit ctx: RenderContext) = elem
   }
 }
 
 trait ViewUtil {
   
-  def setParams(url: PortletURL, params: Seq[(String, String)]) {
+  def renderURL(params: (String, String)*)(implicit ctx: RenderContext) =
+    setParams(ctx.response.createRenderURL, params).toString
+    
+  def actionURL(params: (String, String)*)(implicit ctx: RenderContext) =
+    setParams(ctx.response.createActionURL, params).toString    
+
+  private def setParams(url: PortletURL, params: Seq[(String, String)]) = {
     params foreach {
       case (param, value) =>
         url.setParameter(param, value)
     }
     url    
-  }
-}
-
-abstract class URL {
-  protected def url(response: RenderResponse): PortletURL
-  def apply(paramValues: (String, String)*)(implicit response: RenderResponse) = {
-    val portletURL = url(response)
-    paramValues foreach {
-      case (param, value) =>
-        portletURL.setParameter(param, value)
-    }
-    portletURL
-  }
-}
-
-object RenderURL extends URL {
-  protected def url(response: RenderResponse) = response.createRenderURL
-}
-
-object ActionURL extends URL {
-  protected def url(response: RenderResponse) = response.createActionURL
+  }  
 }
