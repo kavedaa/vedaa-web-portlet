@@ -59,7 +59,7 @@ class RouterPortlet(encoding: String = "UTF-8") extends GenericPortlet with Comm
 
   object Params {
     def unapply(request: PortletRequest) =
-      Some(new Params(mapAsScalaMap(request.getParameterMap).asInstanceOf[Map[String, Array[String]]]))
+      Some(new Params(mapAsScalaMap(request.getParameterMap).toMap.asInstanceOf[Map[String, Array[String]]]))
   }
   
   class Session(self: PortletSession, scope: Int) {
@@ -79,16 +79,17 @@ class RouterPortlet(encoding: String = "UTF-8") extends GenericPortlet with Comm
 
   abstract class SessionData[T](name: String) {
     def init: T
-    def unapply(session: Session) = session(name) match {
+    def apply(session: Session) = session(name) match {
       case Some(x) =>
         println("Found session data as: " + name)
-        Some(x.asInstanceOf[T])
+        x.asInstanceOf[T]
       case None =>
         println("Initializing session data as: " + name)
         val data = init
         session(name) = data
-        Some(data)
+        data
     }
+    def unapply(session: Session) = Some(apply(session))
     def update(session: Session, data: T) { session(name) = data }
   }
 

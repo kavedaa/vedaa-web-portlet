@@ -4,7 +4,7 @@ class ExampleRouter extends RouterPortlet {
 
   render {
     
-    case view(Params(params) & Session(session), _) =>
+    case view(Params(params) & Session(session), resp) =>
       "OK"
       
   }

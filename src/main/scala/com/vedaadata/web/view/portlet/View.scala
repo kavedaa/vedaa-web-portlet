@@ -85,16 +85,16 @@ object View {
 
 trait ViewUtil {
   
-  def renderURL(params: (String, String)*)(implicit ctx: RenderContext) =
+  def renderURL(params: (String, Any)*)(implicit ctx: RenderContext) =
     setParams(ctx.response.createRenderURL, params).toString
     
-  def actionURL(params: (String, String)*)(implicit ctx: RenderContext) =
+  def actionURL(params: (String, Any)*)(implicit ctx: RenderContext) =
     setParams(ctx.response.createActionURL, params).toString    
 
-  private def setParams(url: PortletURL, params: Seq[(String, String)]) = {
+  private def setParams(url: PortletURL, params: Seq[(String, Any)]) = {
     params foreach {
       case (param, value) =>
-        url.setParameter(param, value)
+        url.setParameter(param, value.toString)
     }
     url    
   }  
