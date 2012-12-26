@@ -9,6 +9,6 @@ class TemplateView(beginning: String, end: String)(implicit manager: XhtmlTempla
 }
 
 class BinderView(beginning: String, end: String)(implicit val manager: XhtmlTemplateManager)
-  extends TemplateView(beginning, end) with ElementBinder with BinderDsl with ViewUtil {
+  extends TemplateView(beginning, end) with ElementBinder with BinderDsl {
     override def xml(implicit ctx: RenderContext) = new LinkContextifier(ctx.request.getContextPath)(bind(super.xml))
 }

@@ -1,17 +1,36 @@
 package com.vedaadata.web.view.portlet
 
 import com.vedaadata.web.route.portlet._
+import com.vedaadata.web.view.ViewUtil
 import javax.portlet._
 import scala.xml._
 import collection.JavaConversions._
 
 abstract class View extends ViewUtil {
-  
+
   def render()(implicit ctx: RenderContext): Unit
 
   def contextify(link: String)(implicit ctx: RenderContext) =
     if (!link.startsWith("/")) ctx.request.getContextPath + "/" + link
     else link
+
+  def renderURL(ps: (String, Any)*)(implicit ctx: RenderContext): String = renderURL(ps)
+
+  def renderURL(ps1: Seq[(String, Any)], ps2: (String, Any)*)(implicit ctx: RenderContext): String =
+    setParams(ctx.response.createRenderURL, ps1 ++ ps2).toString
+
+  def actionURL(ps: (String, Any)*)(implicit ctx: RenderContext): String = actionURL(ps)
+
+  def actionURL(ps1: Seq[(String, Any)], ps2: (String, Any)*)(implicit ctx: RenderContext): String =
+    setParams(ctx.response.createActionURL, ps1 ++ ps2).toString
+
+  private def setParams(url: PortletURL, params: Seq[(String, Any)]) = {
+    params foreach {
+      case (param, value) =>
+        url.setParameter(param, value.toString)
+    }
+    url
+  }
 }
 
 abstract class StringView extends View {
@@ -51,7 +70,7 @@ abstract class XmlView extends StringView {
 }
 
 abstract class XhtmlView(wrapperClassName: String) extends XmlView {
-  
+
   def cssFiles: List[String] = Nil
   def jsFiles: List[String] = Nil
 
@@ -81,21 +100,4 @@ object View {
     override def cssFiles = List("style.css")
     def body(implicit ctx: RenderContext) = elem
   }
-}
-
-trait ViewUtil {
-  
-  def renderURL(params: (String, Any)*)(implicit ctx: RenderContext) =
-    setParams(ctx.response.createRenderURL, params).toString
-    
-  def actionURL(params: (String, Any)*)(implicit ctx: RenderContext) =
-    setParams(ctx.response.createActionURL, params).toString    
-
-  private def setParams(url: PortletURL, params: Seq[(String, Any)]) = {
-    params foreach {
-      case (param, value) =>
-        url.setParameter(param, value.toString)
-    }
-    url    
-  }  
 }
