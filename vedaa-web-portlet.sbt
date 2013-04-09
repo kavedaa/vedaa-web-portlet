@@ -2,9 +2,9 @@ name := "vedaa-web-portlet"
 
 organization := "no.vedaadata"
 
-version := "1.1-SNAPSHOT"
+version := "1.5-SNAPSHOT"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.1"
 
 libraryDependencies ++= Seq(
 	"javax.servlet" % "servlet-api" % "2.5" % "provided",
@@ -12,6 +12,5 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-	"no.vedaadata" %% "vedaa-web" % "1.0-SNAPSHOT",
-	"no.vedaadata" %% "vedaa-template" % "1.0-SNAPSHOT"
+	"no.vedaadata" %% "vedaa-web" % "1.5-SNAPSHOT"
 )
