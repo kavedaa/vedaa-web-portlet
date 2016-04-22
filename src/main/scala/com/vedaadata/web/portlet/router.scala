@@ -22,6 +22,9 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
     case _ => "No valid route was found for this request."
   }
 
+  private var errorHandler: (Exception => Renderer) = (ex: Exception) =>
+    <div class="portlet-msg-error">{ ex.getMessage }</div>
+
   private lazy val renderRoutes = renderRouteBuilder :+ default reduceLeft (_ orElse _)
   private lazy val actionRoutes = actionRouteBuilder reduceLeft (_ orElse _)
 
@@ -45,7 +48,13 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
 
   override protected def render(request: RenderRequest, response: RenderResponse) {
     val cycle = new RenderCycle(request, response)
-    renderRoutes(cycle) render cycle
+    try {
+      renderRoutes(cycle) render cycle
+    }
+    catch {
+      case ex: Exception =>
+        errorHandler(ex) render cycle
+    }
   }
 
   /**
@@ -171,9 +180,10 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
   }
 
   def setRenderParameters(ps: (String, Any)*)(implicit response: ActionResponse) {
-    ps foreach { case (k, v) =>
-      response setRenderParameter(k, v.toString)
+    ps foreach {
+      case (k, v) =>
+        response setRenderParameter (k, v.toString)
     }
-  }  
-  
+  }
+
 }

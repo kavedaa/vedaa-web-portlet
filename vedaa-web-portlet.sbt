@@ -4,7 +4,7 @@ organization := "no.vedaadata"
 
 version := "1.5-SNAPSHOT"
 
-scalaVersion := "2.10.1"
+scalaVersion := "2.10.2"
 
 libraryDependencies ++= Seq(
 	"javax.servlet" % "servlet-api" % "2.5" % "provided",

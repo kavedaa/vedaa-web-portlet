@@ -47,7 +47,7 @@ abstract class XmlRenderer extends Renderer {
 
   def xml(implicit c: RenderCycle): scala.xml.Elem
 
-  def prettyPrint = true
+  def prettyPrint = false
 
   def render(implicit c: RenderCycle) {
     if (prettyPrint) renderPretty
@@ -62,7 +62,7 @@ abstract class XmlRenderer extends Renderer {
   }
 
   private def renderPlain(implicit c: RenderCycle) {
-    renderString(xml.toString)
+    renderString(scala.xml.Xhtml toXhtml xml)
   }
 
   private def renderString(content: String)(implicit c: RenderCycle) {
