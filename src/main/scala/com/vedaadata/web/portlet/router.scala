@@ -4,6 +4,9 @@ import com.vedaadata.web._
 import javax.portlet._
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions
+import org.apache.commons.fileupload._
+import org.apache.commons.fileupload.disk.DiskFileItemFactory
+import org.apache.commons.fileupload.portlet.PortletFileUpload
 
 abstract class PortletCycle {
   val request: PortletRequest
@@ -11,7 +14,7 @@ abstract class PortletCycle {
 }
 
 case class RenderCycle(request: RenderRequest, response: RenderResponse) extends PortletCycle
-case class ActionCycle(request: ActionRequest, response: ActionResponse) extends PortletCycle
+case class ActionCycle(request: ActionRequest, response: ActionResponse, encoding: String) extends PortletCycle
 
 class RouterPortlet extends GenericPortlet with CommonExtractors {
 
@@ -65,7 +68,7 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
 
   override protected def processAction(request: ActionRequest, response: ActionResponse) {
     request setCharacterEncoding encoding
-    actionRoutes(new ActionCycle(request, response))
+    actionRoutes(new ActionCycle(request, response, encoding))
   }
 
   protected class Mode(mode: PortletMode) {
@@ -117,6 +120,14 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
     def paramsCompanion = Parameters
   }
 
+  class MultipartFormdataParameters private[web] (protected val self: Map[String, Seq[String]], protected val fileItems: Seq[FileItem])
+    extends AbstractMultipartFormdataParameters {
+
+    def paramsCompanion = MultipartFormdataParameters
+
+    lazy val multi = new MultiParameters(self)    
+  }
+
   /**
    * Extracts request parameters from a cycle.
    */
@@ -130,6 +141,31 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
     def unapply(c: PortletCycle) =
       Some(fromRequest(c.request))
   }
+
+  /**
+   * Extracts request multipart form data parameters from a cycle.
+   */
+  object MultipartFormdataParameters extends ParametersCompanion {
+
+    def fromRequest(request: ActionRequest, encoding: String) = {
+
+    val items = JavaConversions asScalaBuffer (new PortletFileUpload(new DiskFileItemFactory) parseRequest request)        
+
+      val (formItems, fileItems) = items partition(_.isFormField)
+
+      val params = formItems map { item =>
+        item.getFieldName -> item.getString(encoding)
+      }
+
+      val paramsMap = params groupBy { case (name, value) => name } map  { case (name, nameValues) => name -> (nameValues map(_._2)) }
+
+      new MultipartFormdataParameters(paramsMap, fileItems) 
+    }
+
+    def unapply(cycle: ActionCycle) =
+      Some(fromRequest(cycle.request, cycle.encoding))
+  }
+
 
   /**
    * Wraps a PortletSession and pre-specifies a specific scope to use for every

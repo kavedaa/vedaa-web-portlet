@@ -76,7 +76,10 @@ abstract class SimpleXhtml extends XmlRenderer {
   def contentType = "text/html"
   
   def cssFiles: List[String] = Nil
+  def cssLinks: List[String] = Nil
+
   def jsFiles: List[String] = Nil
+  def jsLinks: List[String] = Nil
 
   def wrapperId = ""
   def wrapperStyleClass = ""
@@ -91,8 +94,18 @@ abstract class SimpleXhtml extends XmlRenderer {
         }
       }
       {
+        cssLinks.reverse map { cssLink =>
+          <link rel="stylesheet" type="text/css" href={ cssLink }/>
+        }
+      }
+      {
         jsFiles.reverse map { jsFile =>
           <script src={ contextify(jsFile) }></script>
+        }
+      }
+      {
+        jsLinks.reverse map { jsLink =>
+          <script src={ jsLink }></script>
         }
       }
       { fragment }
