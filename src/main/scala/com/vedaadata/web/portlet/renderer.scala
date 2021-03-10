@@ -5,7 +5,7 @@ import scala.xml.PrettyPrinter
 
 abstract class Renderer {
 
-  def render(implicit c: RenderCycle)
+  def render(implicit c: RenderCycle): Unit
 
   def contextify(link: String)(implicit c: RenderCycle) =
     if (!link.startsWith("/")) c.request.getContextPath + "/" + link
@@ -32,7 +32,7 @@ abstract class Renderer {
 }
 
 class TextRenderer(text: String) extends Renderer {
-  def render(implicit c: RenderCycle) {
+  def render(implicit c: RenderCycle) = {
 //    import collection.JavaConversions._
 //    c.request.getResponseContentTypes foreach println
     //	this is the only content type supported...still it must be set...
@@ -49,23 +49,23 @@ abstract class XmlRenderer extends Renderer {
 
   def prettyPrint = false
 
-  def render(implicit c: RenderCycle) {
+  def render(implicit c: RenderCycle) = {
     if (prettyPrint) renderPretty
     else renderPlain
   }
 
-  private def renderPretty(implicit c: RenderCycle) {
+  private def renderPretty(implicit c: RenderCycle) = {
     val printer = new PrettyPrinter(1024, 2)
     val sb = new StringBuilder
     printer format (xml, sb)
     renderString(sb.toString)
   }
 
-  private def renderPlain(implicit c: RenderCycle) {
+  private def renderPlain(implicit c: RenderCycle) = {
     renderString(scala.xml.Xhtml toXhtml xml)
   }
 
-  private def renderString(content: String)(implicit c: RenderCycle) {
+  private def renderString(content: String)(implicit c: RenderCycle) = {
     c.response setContentType contentType
     c.response.getWriter print content
   }

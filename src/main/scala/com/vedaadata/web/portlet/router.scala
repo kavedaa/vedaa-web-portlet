@@ -1,12 +1,15 @@
 package com.vedaadata.web.portlet
 
-import com.vedaadata.web._
-import javax.portlet._
 import scala.collection.mutable.ListBuffer
-import scala.collection.JavaConversions
+import scala.jdk.CollectionConverters._
+
+import javax.portlet._
+
 import org.apache.commons.fileupload._
 import org.apache.commons.fileupload.disk.DiskFileItemFactory
 import org.apache.commons.fileupload.portlet.PortletFileUpload
+
+import com.vedaadata.web._
 
 abstract class PortletCycle {
   val request: PortletRequest
@@ -14,42 +17,42 @@ abstract class PortletCycle {
 }
 
 case class RenderCycle(request: RenderRequest, response: RenderResponse) extends PortletCycle
-case class ActionCycle(request: ActionRequest, response: ActionResponse, encoding: String) extends PortletCycle
+case class ActionCycle(request: ActionRequest, response: ActionResponse) extends PortletCycle
 
 class RouterPortlet extends GenericPortlet with CommonExtractors {
 
   private val renderRouteBuilder = new ListBuffer[PartialFunction[RenderCycle, Renderer]]
   private val actionRouteBuilder = new ListBuffer[PartialFunction[ActionCycle, Unit]]
 
-  private var default: PartialFunction[RenderCycle, Renderer] = {
+  private var default0: PartialFunction[RenderCycle, Renderer] = {
     case _ => "No valid route was found for this request."
   }
 
   private var errorHandler: (Exception => Renderer) = (ex: Exception) =>
     <div class="portlet-msg-error">{ ex.getMessage }</div>
 
-  private lazy val renderRoutes = renderRouteBuilder :+ default reduceLeft (_ orElse _)
+  private lazy val renderRoutes = renderRouteBuilder :+ default0 reduceLeft (_ orElse _)
   private lazy val actionRoutes = actionRouteBuilder reduceLeft (_ orElse _)
 
   /**
    * Defines any number of render routes, usually in the form of `case` statements.
    * An invocation (or several) of this method should be the main part of your portlet (in the constructor).
    */
-  def render(r: PartialFunction[RenderCycle, Renderer]) { r +=: renderRouteBuilder }
+  def render(r: PartialFunction[RenderCycle, Renderer]) = { r +=: renderRouteBuilder }
 
   /**
    * Defines any number of action routes, usually in the form of `case` statements.
    */
-  def action(r: PartialFunction[ActionCycle, Unit]) { r +=: actionRouteBuilder }
+  def action(r: PartialFunction[ActionCycle, Unit]) = { r +=: actionRouteBuilder }
 
   /**
    * Defines a default renderer that gets used if none of those defined in `render` matches.
    * (You can of course also define that as the last case in `route`, but
    * using this method makes it more explicit.)
    */
-  def default(renderer: Renderer) { default = { case _ => renderer } }
+  def default(renderer: Renderer) = { default0 = { case _ => renderer } }
 
-  override protected def render(request: RenderRequest, response: RenderResponse) {
+  override protected def render(request: RenderRequest, response: RenderResponse) = {
     val cycle = new RenderCycle(request, response)
     try {
       renderRoutes(cycle) render cycle
@@ -66,9 +69,9 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
    */
   def encoding = "UTF-8"
 
-  override protected def processAction(request: ActionRequest, response: ActionResponse) {
+  override protected def processAction(request: ActionRequest, response: ActionResponse) = {
     request setCharacterEncoding encoding
-    actionRoutes(new ActionCycle(request, response, encoding))
+    actionRoutes(new ActionCycle(request, response))
   }
 
   protected class Mode(mode: PortletMode) {
@@ -133,10 +136,12 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
    */
   object Parameters extends ParametersCompanion {
 
-    def fromRequest(request: PortletRequest) =
-      new Parameters(JavaConversions mapAsScalaMap request.getParameterMap.asInstanceOf[java.util.Map[String, Array[String]]] map {
+    def fromRequest(request: PortletRequest) = {
+      val parameters = request.getParameterMap.asInstanceOf[java.util.Map[String, Array[String]]].asScala map {
         case (k, v) => (k, v.toSeq)
-      } toMap)
+      }
+      new Parameters(parameters.toMap)
+    }
 
     def unapply(c: PortletCycle) =
       Some(fromRequest(c.request))
@@ -147,14 +152,14 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
    */
   object MultipartFormdataParameters extends ParametersCompanion {
 
-    def fromRequest(request: ActionRequest, encoding: String) = {
+    def fromRequest(request: ActionRequest) = {
 
-    val items = JavaConversions asScalaBuffer (new PortletFileUpload(new DiskFileItemFactory) parseRequest request)        
+      val items = new PortletFileUpload(new DiskFileItemFactory).parseRequest(request).asScala.toSeq        
 
       val (formItems, fileItems) = items partition(_.isFormField)
 
       val params = formItems map { item =>
-        item.getFieldName -> item.getString(encoding)
+        item.getFieldName -> item.getString
       }
 
       val paramsMap = params groupBy { case (name, value) => name } map  { case (name, nameValues) => name -> (nameValues map(_._2)) }
@@ -163,7 +168,7 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
     }
 
     def unapply(cycle: ActionCycle) =
-      Some(fromRequest(cycle.request, cycle.encoding))
+      Some(fromRequest(cycle.request))
   }
 
 
@@ -174,7 +179,7 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
    */
   class Session(portletSession: PortletSession, scope: Int) {
     def apply(name: String) = Option(portletSession getAttribute (name, scope))
-    def update(name: String, value: Any) { portletSession setAttribute (name, value, scope) }
+    def update(name: String, value: Any) = { portletSession setAttribute (name, value, scope) }
   }
 
   /**
@@ -215,7 +220,7 @@ class RouterPortlet extends GenericPortlet with CommonExtractors {
     def unapply(session: Session) = Some(apply(session))
   }
 
-  def setRenderParameters(ps: (String, Any)*)(implicit response: ActionResponse) {
+  def setRenderParameters(ps: (String, Any)*)(implicit response: ActionResponse) = {
     ps foreach {
       case (k, v) =>
         response setRenderParameter (k, v.toString)
